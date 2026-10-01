@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Analysis History - Requirements Contradiction Detector{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-5 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 fw-bold text-dark mb-1">Analysis History & Past Reports</h1>
+      <p class="text-muted small mb-0">Browse through previously analyzed requirement specifications and audits.</p>
+    </div>
+    <a href="{% url 'detector:upload' %}" class="btn btn-primary px-4 shadow-sm">
+      <i class="bi bi-cloud-arrow-up-fill me-1"></i> New Analysis
+    </a>
+  </div>
+
+  {% if sessions %}
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-4">Title & Session ID</th>
+              <th>Status</th>
+              <th>Contradictions</th>
+              <th>Overlaps</th>
+              <th>Total Reqs</th>
+              <th>Date</th>
+              <th class="text-end pe-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessions %}
+              <tr>
+                <td class="ps-4">
+                  <a href="{% url 'detector:report' s.id %}" class="fw-semibold text-dark text-decoration-none">
+                    {{ s.title }}
+                  </a>
+                  <div class="text-muted small">Session #{{ s.id }} • {{ s.documents.count }} Doc{{ s.documents.count|pluralize }}</div>
+                </td>
+                <td>
+                  {% if s.status == 'COMPLETED' %}
+                    {% if s.has_conflicts %}
+                      <span class="badge bg-danger rounded-pill">Conflicts Found</span>
+                    {% else %}
+                      <span class="badge bg-success rounded-pill">Clean</span>
+                    {% endif %}
+                  {% elif s.status == 'FAILED' %}
+                    <span class="badge bg-dark rounded-pill">Failed</span>
+                  {% else %}
+                    <span class="badge bg-info rounded-pill">{{ s.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="fw-bold text-danger">{{ s.contradictions_count }}</span>
+                </td>
+                <td>
+                  <span class="fw-bold text-warning-emphasis">{{ s.overlaps_count }}</span>
+                </td>
+                <td class="text-muted small">
+                  {{ s.total_requirements }}
+                </td>
+                <td class="text-muted small">
+                  {{ s.created_at|date:"M d, Y • H:i" }}
+                </td>
+                <td class="text-end pe-4">
+                  <div class="btn-group">
+                    <a href="{% url 'detector:report' s.id %}" class="btn btn-sm btn-outline-primary" title="View Report">
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                    <form method="POST" action="{% url 'detector:delete_session' s.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this session and its documents?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+      <div class="card-body">
+        <i class="bi bi-folder2-open text-muted display-4 mb-3 d-block"></i>
+        <h4 class="fw-bold text-dark">No Analysis Sessions Yet</h4>
+        <p class="text-muted mb-4">Start by uploading your first SRS or BRD document, or try our benchmark demo.</p>
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{% url 'detector:upload' %}" class="btn btn-primary px-4">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload Documents
+          </a>
+          <a href="{% url 'detector:load_sample' %}" class="btn btn-warning px-4 text-dark fw-bold">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Load Demo Sample
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

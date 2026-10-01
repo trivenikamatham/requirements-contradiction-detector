@@ -1,0 +1,46 @@
+# SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
+# Project: MedSecure Patient Portal & Electronic Health Records
+# Version: 1.0 (Baseline Architecture)
+# Classification: Confidential - Internal Medical IT
+
+================================================================================
+SECTION 1: USER AUTHENTICATION & ACCESS CONTROL
+================================================================================
+
+REQ-AUTH-01: The system shall automatically terminate and invalidate active user sessions after 15 minutes of user inactivity to comply with HIPAA security safeguards.
+
+REQ-AUTH-02: All healthcare practitioners, clinicians, and patients shall authenticate using mandatory multi-factor authentication (MFA) via TOTP or biometric verification.
+
+REQ-AUTH-03: Passwords must contain at least 12 characters, including uppercase, lowercase, numbers, and special symbols.
+
+================================================================================
+SECTION 2: SYSTEM PERFORMANCE & LATENCY
+================================================================================
+
+REQ-PERF-01: The patient medical records query service shall return search results within 1.0 second under peak load of 1,000 concurrent queries.
+
+REQ-PERF-02: Patient record exports to PDF format shall be generated and ready for download within 5.0 seconds.
+
+================================================================================
+SECTION 3: DATA RETENTION & COMPLIANCE
+================================================================================
+
+REQ-DATA-01: All electronic health record access logs, audit trails, and clinical modifications shall be preserved for a mandatory retention period of 7 years in an immutable repository.
+
+REQ-DATA-02: Patient personal identifiers (PII) and protected health information (PHI) shall be encrypted at rest using AES-256 encryption.
+
+================================================================================
+SECTION 4: INFRASTRUCTURE & DEPLOYMENT
+================================================================================
+
+REQ-ARCH-01: All patient database clusters and application services shall be hosted on-premise within the hospital's private air-gapped data center to satisfy local jurisdiction sovereignty rules.
+
+REQ-ARCH-02: The database layer shall use a relational PostgreSQL database cluster configured for active-passive replication.
+
+================================================================================
+SECTION 5: COMMUNICATION & LOCALIZATION
+================================================================================
+
+REQ-NOTIF-01: The system shall transmit appointment reminders and pre-op instructions to registered patients via SMS and email 24 hours prior to the scheduled consultation.
+
+REQ-LANG-01: The patient portal web and mobile interfaces shall be developed exclusively in English.

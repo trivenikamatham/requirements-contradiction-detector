@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Documents - Requirements Contradiction Detector{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-5 py-4">
+
+  <!-- Hero Banner -->
+  <div class="hero-card mb-4">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <span class="badge bg-white text-primary fw-bold mb-3 px-3 py-2 rounded-pill shadow-sm">
+          <i class="bi bi-stars text-warning me-1"></i> Automated Requirements Verification
+        </span>
+        <h1 class="display-5 fw-bold text-white mb-3">AI Requirements Contradiction Detector</h1>
+        <p class="lead text-light mb-4" style="max-width: 680px; opacity: 0.95;">
+          Upload SRS, BRD, or system specifications in PDF, DOCX, or TXT format. Our engine extracts requirements, tracks source provenance, pairs semantically related statements, and uses LLM intelligence to pinpoint direct contradictions, overlaps, and resolution strategies.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="#upload-section" class="btn btn-light btn-lg px-4 fw-semibold text-primary shadow-sm">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload Documents
+          </a>
+          <a href="{% url 'detector:load_sample' %}" class="btn btn-outline-light btn-lg px-4 fw-semibold">
+            <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Run Sample Benchmark
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-4 d-none d-lg-block text-end">
+        <div class="p-4 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-25 text-start shadow-lg">
+          <div class="d-flex align-items-center gap-2 mb-2 text-warning fw-bold">
+            <i class="bi bi-check-circle-fill"></i> Multi-Format Support
+          </div>
+          <div class="small text-white-50 mb-3">PDF, DOCX, and TXT with automatic sentence & clause segmentation.</div>
+
+          <div class="d-flex align-items-center gap-2 mb-2 text-info fw-bold">
+            <i class="bi bi-check-circle-fill"></i> Provenance Tracking
+          </div>
+          <div class="small text-white-50 mb-3">Precise references to source file, page number, and section title.</div>
+
+          <div class="d-flex align-items-center gap-2 mb-2 text-success fw-bold">
+            <i class="bi bi-check-circle-fill"></i> Explainable AI
+          </div>
+          <div class="small text-white-50">Detailed rationale and recommended engineering resolutions.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4" id="upload-section">
+    <!-- Main Upload Form -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-4 p-md-5">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <h2 class="h4 fw-bold text-dark mb-1">Upload Requirements Documents</h2>
+              <p class="text-muted small mb-0">Select one or more requirement documents to compare and detect conflicts.</p>
+            </div>
+            <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill">
+              <i class="bi bi-file-earmark-check me-1"></i> PDF, DOCX, TXT
+            </span>
+          </div>
+
+          <form method="POST" enctype="multipart/form-data" id="analysisUploadForm">
+            {% csrf_token %}
+
+            <!-- Project / Session Title -->
+            <div class="mb-4">
+              <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold text-dark">
+                Session Title <span class="text-muted fw-normal">(Optional)</span>
+              </label>
+              {{ form.title }}
+              <div class="form-text">Give this analysis session a meaningful name (e.g. "Hospital Portal SRS v1 vs Billing BRD v2").</div>
+            </div>
+
+            <!-- Drag & Drop Upload Zone -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold text-dark">
+                Requirements Files <span class="text-danger">*</span>
+              </label>
+              
+              <div class="dropzone-box" id="dropzoneContainer">
+                <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+                <h5 class="fw-bold text-dark mb-1">Drag and drop files here</h5>
+                <p class="text-muted small mb-3">or click to browse from your computer</p>
+                <div class="d-inline-block">
+                  {{ form.documents }}
+                </div>
+                <div class="text-muted small mt-2">
+                  Supported formats: <strong>.pdf</strong>, <strong>.docx</strong>, <strong>.txt</strong> (Max 15MB per file)
+                </div>
+              </div>
+
+              <!-- Selected Files Preview List -->
+              <div id="fileListContainer" class="mt-3" style="display: none;">
+                <h6 class="fw-bold small text-muted text-uppercase mb-2">Selected Files:</h6>
+                <ul class="list-group list-group-flush border rounded-3 small" id="selectedFilesList"></ul>
+              </div>
+
+              {% if form.documents.errors %}
+                <div class="text-danger small mt-2">
+                  {{ form.documents.errors }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Parameters Card -->
+            <div class="card border rounded-3 bg-light mb-4">
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <label for="thresholdRange" class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-1">
+                      <span>Semantic Similarity Threshold</span>
+                      <span class="badge bg-primary text-white" id="thresholdValueBadge">0.50</span>
+                    </label>
+                    {{ form.similarity_threshold }}
+                    <div class="form-text small">
+                      Determines how closely related two requirements must be before the LLM evaluates them for contradictions.
+                    </div>
+                  </div>
+
+                  <div class="col-md-5 d-flex align-items-center">
+                    <div class="form-check form-switch mt-2">
+                      {{ form.cross_document_only }}
+                      <label class="form-check-label fw-semibold text-dark small" for="{{ form.cross_document_only.id_for_label }}">
+                        Cross-Document Only
+                      </label>
+                      <div class="text-muted" style="font-size: 0.75rem;">
+                        Only compare statements between different documents (ignores internal document pairs).
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button with Processing Spinner -->
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm py-3" id="submitBtn">
+                <span id="btnText">
+                  <i class="bi bi-play-circle-fill me-2"></i> Start Requirements Analysis
+                </span>
+                <span id="btnSpinner" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
+                <span id="btnLoadingText" style="display: none;">Processing Documents & Analyzing Conflicts...</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Load Demo Card & Diagnostic Info -->
+    <div class="col-lg-4">
+      <!-- Quick Demo Card -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4" style="background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-2 mb-2 text-warning-emphasis fw-bold">
+            <i class="bi bi-lightning-charge-fill text-warning fs-4"></i>
+            <h5 class="fw-bold mb-0 text-dark">One-Click Benchmark Demo</h5>
+          </div>
+          <p class="text-muted small mb-3">
+            Want to see contradictions in action immediately without preparing files? Load our pre-configured medical software conflict dataset:
+          </p>
+          <div class="bg-white p-3 rounded-3 border mb-3 small">
+            <div class="fw-semibold text-dark mb-1">
+              <i class="bi bi-file-text text-primary me-1"></i> MedSecure Patient Portal SRS v1.0
+            </div>
+            <div class="text-muted mb-2 ps-3">15-minute session timeout, mandatory MFA, on-premise air-gapped hosting.</div>
+
+            <div class="fw-semibold text-dark mb-1">
+              <i class="bi bi-file-text text-danger me-1"></i> Outpatient Billing Modernization BRD v2.0
+            </div>
+            <div class="text-muted ps-3">30-minute idle session timeout, single-factor password bypass, 100% public cloud.</div>
+          </div>
+          <a href="{% url 'detector:load_sample' %}" class="btn btn-warning w-100 fw-bold shadow-sm py-2 text-dark">
+            <i class="bi bi-arrow-right-circle me-1"></i> Load & Analyze Sample Now
+          </a>
+        </div>
+      </div>
+
+      <!-- Engine Configuration Card -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-sliders2 text-primary"></i> Engine Diagnostics
+          </h5>
+
+          <div class="mb-3">
+            <div class="text-muted small">LLM Reasoning Engine</div>
+            <div class="fw-semibold text-dark d-flex align-items-center gap-1 mt-1">
+              <span class="badge bg-{{ active_llm_badge }}">{{ active_llm_display }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="text-muted small">Vector Embeddings</div>
+            <div class="fw-semibold text-dark mt-1">
+              <span class="badge bg-secondary">{{ active_embedding_display }}</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-muted small">Safety & Privacy</div>
+            <div class="small text-muted mt-1">
+              <i class="bi bi-lock-fill text-success me-1"></i> No API keys or credentials exposed in frontend templates.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Sessions Card -->
+      {% if recent_sessions %}
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-clock-history text-secondary"></i> Recent Analyses
+            </h5>
+            <div class="list-group list-group-flush small">
+              {% for s in recent_sessions %}
+                <a href="{% url 'detector:report' s.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 py-2">
+                  <div>
+                    <div class="fw-semibold text-dark text-truncate" style="max-width: 180px;">{{ s.title }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">{{ s.created_at|date:"M d, Y H:i" }}</div>
+                  </div>
+                  <div>
+                    {% if s.contradictions_count > 0 %}
+                      <span class="badge bg-danger rounded-pill">{{ s.contradictions_count }} Conflicts</span>
+                    {% elif s.overlaps_count > 0 %}
+                      <span class="badge bg-warning text-dark rounded-pill">{{ s.overlaps_count }} Overlaps</span>
+                    {% else %}
+                      <span class="badge bg-success rounded-pill">Clean</span>
+                    {% endif %}
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('documentUploadInput');
+    const dropzone = document.getElementById('dropzoneContainer');
+    const fileListContainer = document.getElementById('fileListContainer');
+    const selectedFilesList = document.getElementById('selectedFilesList');
+    const thresholdRange = document.getElementById('thresholdRange');
+    const thresholdBadge = document.getElementById('thresholdValueBadge');
+    const form = document.getElementById('analysisUploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const btnLoadingText = document.getElementById('btnLoadingText');
+
+    // Threshold range dynamic update
+    if (thresholdRange && thresholdBadge) {
+      thresholdRange.addEventListener('input', function () {
+        thresholdBadge.textContent = parseFloat(this.value).toFixed(2);
+      });
+    }
+
+    // File input changes
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        selectedFilesList.innerHTML = '';
+        if (this.files.length > 0) {
+          fileListContainer.style.display = 'block';
+          for (let i = 0; i < this.files.length; i++) {
+            const file = this.files[i];
+            const sizeKB = (file.size / 1024).toFixed(1);
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+            li.innerHTML = `<span><i class="bi bi-file-earmark-text text-primary me-2"></i><strong>${file.name}</strong></span><span class="text-muted">${sizeKB} KB</span>`;
+            selectedFilesList.appendChild(li);
+          }
+        } else {
+          fileListContainer.style.display = 'none';
+        }
+      });
+    }
+
+    // Drag and drop handlers
+    if (dropzone && fileInput) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('dragover');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+        });
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) {
+          fileInput.files = e.dataTransfer.files;
+          const event = new Event('change');
+          fileInput.dispatchEvent(event);
+        }
+      });
+    }
+
+    // Loading indicator on form submit
+    if (form && submitBtn) {
+      form.addEventListener('submit', function () {
+        btnText.style.display = 'none';
+        btnSpinner.style.display = 'inline-block';
+        btnLoadingText.style.display = 'inline';
+        submitBtn.disabled = true;
+      });
+    }
+  });
+</script>
+{% endblock %}
